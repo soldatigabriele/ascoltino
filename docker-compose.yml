@@ -1,0 +1,13 @@
+services:
+  telegram-bot:
+    image: gab9119/ascoltino-bot:amd_v1 
+    build: .
+    env_file:
+      - .env
+    volumes:
+      #  - .:/app 
+      - ./logs:/app/logs
+      - whisper-cache:/root/.cache
+
+volumes:
+  whisper-cache: # <-- Create a named volume for the Whisper cache
