@@ -40,10 +40,13 @@ def convert_oga_to_wav(input_path, output_path):
         return False
 
 def get_last_update_id():
-    if os.path.exists(LAST_UPDATE_FILE):
-        with open(LAST_UPDATE_FILE, "r") as f:
-            return int(f.read().strip())
-    return None
+    os.makedirs("storage", exist_ok=True)
+    if not os.path.exists(LAST_UPDATE_FILE):
+        with open(LAST_UPDATE_FILE, "w") as f:
+            f.write("0")
+    with open(LAST_UPDATE_FILE, "r") as f:
+        return int(f.read().strip())
+
 
 
 def set_last_update_id(update_id):
@@ -123,7 +126,7 @@ def transcribe(file_path):
 def send_message(chat_id, text):
     try:
         log.info("Sending message")
-        requests.post(f"{API_URL}/sendMessage", data={"chat_id": chat_id, "text": text})
+        requests.post(f"{API_URL}/sendMessage", data={"chat_id": chat_id, "text": text, "disable_notification": True})
     except Exception as e:
         log.error(f"Failed to send message: {e}")
 
