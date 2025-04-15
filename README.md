@@ -73,11 +73,17 @@ Transcription not working: Check if `ffmpeg` properly converts the `.oga` file.
 ## Build and deploy
 
 ```bash
+# AMD
 docker build --platform linux/arm64 -t gab9119/ascoltino-bot .
-docker build --platform linux/amd64 -t gab9119/ascoltino-bot .
+docker tag gab9119/ascoltino-bot gab9119/ascoltino-bot:arm_v2
+docker push gab9119/ascoltino-bot:arm_v2
 
+# ARM
+docker build --platform linux/amd64 -t gab9119/ascoltino-bot .
 docker tag gab9119/ascoltino-bot gab9119/ascoltino-bot:amd_v2
 docker push gab9119/ascoltino-bot:amd_v2
+
+# change in your docker-compose the version you need before pulling
 ```
 
 ## Find the chat_id
