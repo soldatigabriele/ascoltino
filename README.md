@@ -89,7 +89,13 @@ docker push gab9119/ascoltino-bot:amd_v2
 ## Find the chat_id
 
 ```bash
-https://api.telegram.org/bot<token>/getUpdates
+https://api.telegram.org/bot<TOKEN>/getUpdates
+
+# get the message with the audio message
+
+https://api.telegram.org/bot<TOKEN>/getFile?file_id= # /voice/file_11.oga
+
+https://api.telegram.org/file/bot<TOKEN>/voice/file_11.oga
 ```
 
 ! Note: make sure you keep the `/bot` part in the url before the token!
