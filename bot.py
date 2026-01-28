@@ -89,7 +89,11 @@ def download_file(file_id):
         log.error(f"Download failed: {e}")
         return None
 
-def transcribe(file_path):
+def transcribe(file_path, on_segment=None):
+    """
+    Transcribe audio file. If on_segment callback is provided,
+    it will be called with the accumulated text after each segment.
+    """
     try:
         log.info("Transcribing file")
         segments, info = model.transcribe(
@@ -104,6 +108,10 @@ def transcribe(file_path):
         for segment in segments:
             log.info(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment.text}")
             full_text += segment.text.strip() + " "
+            
+            # Call the callback with accumulated text if provided
+            if on_segment:
+                on_segment(full_text.strip())
 
         full_text = full_text.strip()
         
@@ -123,6 +131,32 @@ def send_message(chat_id, text):
         requests.post(f"{API_URL}/sendMessage", data={"chat_id": chat_id, "text": text, "disable_notification": True})
     except Exception as e:
         log.error(f"Failed to send message: {e}")
+
+
+def send_message_and_get_id(chat_id, text):
+    """Send message and return message_id for later editing."""
+    try:
+        res = requests.post(f"{API_URL}/sendMessage", data={
+            "chat_id": chat_id,
+            "text": text,
+            "disable_notification": True
+        })
+        return res.json()["result"]["message_id"]
+    except Exception as e:
+        log.error(f"Failed to send message: {e}")
+        return None
+
+
+def edit_message(chat_id, message_id, text):
+    """Edit an existing message."""
+    try:
+        requests.post(f"{API_URL}/editMessageText", data={
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "text": text
+        })
+    except Exception as e:
+        log.warning(f"Failed to edit message: {e}")
 
 
 def cleanup_temp_files(*file_paths):
@@ -160,12 +194,27 @@ def main():
                     try:
                         if voice_file:
                             if convert_oga_to_wav(voice_file, wav_file):
-                                text = transcribe(wav_file)
+                                # Send initial "transcribing" message
+                                message_id = send_message_and_get_id(chat_id, "🎤 Transcribing...")
+                                
+                                # Track last edit time to avoid rate limits
+                                last_edit_time = [0]  # Use list to allow mutation in closure
+                                MIN_EDIT_INTERVAL = 0.5  # 500ms between edits
+                                
+                                def on_segment(partial_text):
+                                    now = time.time()
+                                    if now - last_edit_time[0] >= MIN_EDIT_INTERVAL:
+                                        edit_message(chat_id, message_id, f"🗣️ {partial_text}...")
+                                        last_edit_time[0] = now
+                                
+                                text = transcribe(wav_file, on_segment=on_segment)
+                                
                                 if text:
-                                    send_message(chat_id, f"🗣️ {text}")
+                                    # Final update without the trailing "..."
+                                    edit_message(chat_id, message_id, f"🗣️ {text}")
                                 else:
                                     log.info(chat_id, "❌ Could not transcribe audio.")
-                                    send_message(chat_id, "❌ Could not transcribe audio.")
+                                    edit_message(chat_id, message_id, "❌ Could not transcribe audio.")
                             else:
                                 log.error("could not convert")
                     finally:
