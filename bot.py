@@ -10,6 +10,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 BOT_MODEL = os.getenv("BOT_MODEL", "base")
 LANGUAGE = os.getenv("LANGUAGE")
+BEAM_SIZE = int(os.getenv("BEAM_SIZE", "1"))
+VAD_FILTER = os.getenv("VAD_FILTER", "false").lower() == "true"
 
 LAST_UPDATE_FILE = "storage/.last_update"
 
@@ -93,8 +95,8 @@ def transcribe(file_path):
         segments, info = model.transcribe(
             file_path,
             language=LANGUAGE,
-            beam_size=5,
-            vad_filter=True  # Skip non-speech segments for faster processing
+            beam_size=BEAM_SIZE,
+            vad_filter=VAD_FILTER,
         )
         log.info(f"Detected language '{info.language}' with probability {info.language_probability:.2f}")
         
