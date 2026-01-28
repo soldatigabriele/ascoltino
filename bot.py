@@ -2,14 +2,13 @@ import os
 import time
 import requests
 import subprocess
-# import whisper
 from faster_whisper import WhisperModel
 
 import logging
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
-BOT_MODEL = os.getenv("BOT_MODEL")
+BOT_MODEL = os.getenv("BOT_MODEL", "base")
 LANGUAGE = os.getenv("LANGUAGE")
 
 LAST_UPDATE_FILE = "storage/.last_update"
@@ -21,6 +20,11 @@ logging.basicConfig(
 )
 
 log = logging.getLogger(__name__)
+
+# Load model once at startup
+log.info(f"Loading Whisper model: {BOT_MODEL}")
+model = WhisperModel(BOT_MODEL, device="cpu", compute_type="int8")
+log.info("Model loaded!")
 
 
 def convert_oga_to_wav(input_path, output_path):
@@ -84,26 +88,14 @@ def download_file(file_id):
         return None
 
 def transcribe(file_path):
-    print("BOT_MODEL")
-    print(BOT_MODEL)
     try:
         log.info("Transcribing file")
-        try:
-            model_size = BOT_MODEL or "base"
-            log.info("Transcribing file: model size")
-            model = WhisperModel(model_size, device="cpu", compute_type="int8")
-            log.info("Transcribing file: model from whisper")
-        except Exception as e:
-            log.error("0")
-            return None
-        try:
-            log.info("Transcribing file: prima segmenty")
-            segments, info = model.transcribe(file_path, language=LANGUAGE, beam_size=5)
-            log.info("Transcribing file: dopo segmenty")
-        except Exception as e:
-            log.error("1")
-            return None
-    
+        segments, info = model.transcribe(
+            file_path,
+            language=LANGUAGE,
+            beam_size=5,
+            vad_filter=True  # Skip non-speech segments for faster processing
+        )
         log.info(f"Detected language '{info.language}' with probability {info.language_probability:.2f}")
         
         full_text = ""
@@ -131,6 +123,17 @@ def send_message(chat_id, text):
         log.error(f"Failed to send message: {e}")
 
 
+def cleanup_temp_files(*file_paths):
+    """Remove temporary files after processing."""
+    for file_path in file_paths:
+        try:
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+                log.info(f"Cleaned up temp file: {file_path}")
+        except Exception as e:
+            log.warning(f"Failed to clean up {file_path}: {e}")
+
+
 def main():
     log.info("Bot started... again")
     last_update_id = get_last_update_id()
@@ -151,16 +154,21 @@ def main():
                     log.info("Voice message received")
                     file_id = message["voice"]["file_id"]
                     voice_file = download_file(file_id)
-                    if voice_file:
-                        if convert_oga_to_wav(voice_file, voice_file + ".wav"):
-                            text = transcribe(voice_file + ".wav")
-                            if text:
-                                send_message(chat_id, f"🗣️ {text}")
+                    wav_file = voice_file + ".wav" if voice_file else None
+                    try:
+                        if voice_file:
+                            if convert_oga_to_wav(voice_file, wav_file):
+                                text = transcribe(wav_file)
+                                if text:
+                                    send_message(chat_id, f"🗣️ {text}")
+                                else:
+                                    log.info(chat_id, "❌ Could not transcribe audio.")
+                                    send_message(chat_id, "❌ Could not transcribe audio.")
                             else:
-                                log.info(chat_id, "❌ Could not transcribe audio.")
-                                send_message(chat_id, "❌ Could not transcribe audio.")
-                        else:
-                            log.error("could not convert")
+                                log.error("could not convert")
+                    finally:
+                        # Clean up temp files after processing
+                        cleanup_temp_files(voice_file, wav_file)
                 else:
                     log.info("Non-voice message, ignoring")
 
