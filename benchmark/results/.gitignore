@@ -1,0 +1,5 @@
+# Ignore benchmark results (machine-specific)
+*.json
+*.csv
+*.md
+!.gitignore

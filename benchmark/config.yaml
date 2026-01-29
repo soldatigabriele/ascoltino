@@ -1,0 +1,28 @@
+# Focused Benchmark Configuration
+# Optimized for cross-machine comparison (threading + model performance)
+
+language: it
+
+# Focused grid: 3 models × 3 worker counts = 9 configs
+grid:
+  model:
+    - tiny
+    - base
+    - small
+  beam_size:
+    - 5           # Best accuracy from previous tests
+  vad_filter:
+    - false       # Performed better in previous tests
+  compute_type:
+    - int8
+  num_workers:
+    - 1           # Single-threaded baseline
+    - 2           # Light multi-threading
+    - 4           # More parallelism
+  best_of:
+    - 1
+
+# Run each config twice for more reliable timing
+runs_per_config: 2
+
+record_system_info: true

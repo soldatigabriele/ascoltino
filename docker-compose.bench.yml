@@ -1,0 +1,19 @@
+services:
+  benchmark:
+    build:
+      context: ./benchmark
+      dockerfile: Dockerfile
+    volumes:
+      # Mount samples directory (add your audio files here)
+      - ./benchmark/samples:/benchmark/samples
+      # Mount results directory (output will be saved here)
+      - ./benchmark/results:/benchmark/results
+      # Share whisper model cache to avoid re-downloading
+      - whisper-cache:/root/.cache
+    environment:
+      - BENCHMARK_CONFIG=/benchmark/config.yaml
+    # Uncomment to override config via CLI:
+    # command: ["--models", "tiny,base", "--beam-sizes", "1,5"]
+
+volumes:
+  whisper-cache:
