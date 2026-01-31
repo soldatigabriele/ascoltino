@@ -2,15 +2,6 @@
 
 This folder contains the Home Assistant add-on configuration.
 
-## Required Assets
-
-Before publishing, add the following image files:
-
-- `icon.png` - 256x256 PNG icon for the add-on
-- `logo.png` - 256x256 PNG logo for the add-on
-
-These images will be displayed in the Home Assistant add-on store.
-
 ## Installation
 
 Users can install this add-on by adding the repository URL to Home Assistant:
