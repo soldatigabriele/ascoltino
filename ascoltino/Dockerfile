@@ -1,11 +1,5 @@
-FROM python:3.11-slim
-
-# Install ffmpeg and Python packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg jq && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir requests faster-whisper
+# Use pre-built base image with all dependencies
+FROM gab9119/ascoltino-base:latest
 
 # Setup app directory
 WORKDIR /app
