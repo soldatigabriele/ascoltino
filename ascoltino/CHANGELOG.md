@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Documentation cleanup
+
 ## 1.2.0
 
 - Added "turbo" model option

@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 
 import logging
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 # Detect Home Assistant add-on environment
 HA_ADDON = os.getenv("HA_ADDON", "").lower() == "true"
