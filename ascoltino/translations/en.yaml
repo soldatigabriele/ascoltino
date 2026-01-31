@@ -17,6 +17,9 @@ configuration:
   threads:
     name: CPU Threads
     description: Number of CPU threads for transcription (0 = auto-detect)
+  show_footer:
+    name: Show Footer
+    description: Show transcription stats (time, model, speed) in message footer
   bot_name:
     name: Bot Name
     description: Optional name displayed in the transcription footer

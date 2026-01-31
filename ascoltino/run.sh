@@ -13,6 +13,7 @@ if [ -f "$OPTIONS_FILE" ]; then
     export THREADS="$(jq -r '.threads' $OPTIONS_FILE)"
     export BOT_NAME="$(jq -r '.bot_name' $OPTIONS_FILE)"
     export ADMIN_CHAT_ID="$(jq -r '.admin_chat_id' $OPTIONS_FILE)"
+    export SHOW_FOOTER="$(jq -r '.show_footer' $OPTIONS_FILE)"
 fi
 
 # Signal we're running in HA environment

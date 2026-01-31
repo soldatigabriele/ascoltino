@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 
 import logging
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 # Detect Home Assistant add-on environment
 HA_ADDON = os.getenv("HA_ADDON", "").lower() == "true"
@@ -33,6 +33,7 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 BOT_NAME = os.getenv("BOT_NAME", "")
 LANGUAGE = os.getenv("LANGUAGE")
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")  # Optional: send startup message to this chat
+SHOW_FOOTER = os.getenv("SHOW_FOOTER", "true").lower() == "true"
 
 # Parse comma-separated config values for multi-config mode
 def parse_models(val):
@@ -365,12 +366,15 @@ def main():
                                         )
                                         
                                         if result:
-                                            stats = format_stats_footer(
-                                                result["duration"], result["elapsed"],
-                                                model_name=model_name, beam_size=beam_size,
-                                                vad_filter=vad_filter, threads=threads
-                                            )
-                                            send_message(chat_id, f"🗣️ {result['text']}{stats}")
+                                            if SHOW_FOOTER:
+                                                stats = format_stats_footer(
+                                                    result["duration"], result["elapsed"],
+                                                    model_name=model_name, beam_size=beam_size,
+                                                    vad_filter=vad_filter, threads=threads
+                                                )
+                                                send_message(chat_id, f"🗣️ {result['text']}{stats}")
+                                            else:
+                                                send_message(chat_id, f"🗣️ {result['text']}")
                                         else:
                                             send_message(chat_id, f"❌ Failed: {config_label}")
                                 else:
@@ -390,9 +394,12 @@ def main():
                                     result = transcribe(wav_file, on_segment=on_segment)
                                     
                                     if result:
-                                        # Final update with stats footer
-                                        stats = format_stats_footer(result["duration"], result["elapsed"])
-                                        edit_message(chat_id, message_id, f"🗣️ {result['text']}{stats}")
+                                        # Final update with optional stats footer
+                                        if SHOW_FOOTER:
+                                            stats = format_stats_footer(result["duration"], result["elapsed"])
+                                            edit_message(chat_id, message_id, f"🗣️ {result['text']}{stats}")
+                                        else:
+                                            edit_message(chat_id, message_id, f"🗣️ {result['text']}")
                                     else:
                                         log.info(chat_id, "❌ Could not transcribe audio.")
                                         edit_message(chat_id, message_id, "❌ Could not transcribe audio.")

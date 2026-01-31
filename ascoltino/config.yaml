@@ -1,6 +1,6 @@
 name: "Ascoltino"
 description: "Telegram bot that transcribes voice messages using Whisper AI"
-version: "1.1.0"
+version: "1.2.0"
 slug: "ascoltino"
 url: "https://github.com/soldatigabriele/ascoltino"
 init: false
@@ -18,14 +18,16 @@ options:
   beam_size: 1
   vad_filter: false
   threads: 4
+  show_footer: true
   bot_name: ""
   admin_chat_id: ""
 schema:
   bot_token: password
-  model: "list(tiny|base|small|medium|large-v2|large-v3)"
+  model: "list(tiny|base|small|medium|turbo|large-v2|large-v3)"
   language: str
   beam_size: "int(1,10)"
   vad_filter: bool
   threads: "int(1,16)"
+  show_footer: bool
   bot_name: "str?"
   admin_chat_id: "str?"
