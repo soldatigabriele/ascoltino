@@ -1,18 +1,11 @@
-ARG BUILD_FROM
-FROM $BUILD_FROM
+FROM python:3.11-slim
 
-# Install build dependencies, then Python packages, then cleanup build deps
-RUN apk add --no-cache \
-        python3 \
-        py3-pip \
-        ffmpeg \
-    && apk add --no-cache --virtual .build-deps \
-        build-base \
-        python3-dev \
-        pkgconfig \
-        ffmpeg-dev \
-    && pip3 install --no-cache-dir --break-system-packages requests faster-whisper \
-    && apk del .build-deps
+# Install ffmpeg and Python packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir requests faster-whisper
 
 # Setup app directory
 WORKDIR /app

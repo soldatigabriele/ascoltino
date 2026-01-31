@@ -67,7 +67,5 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.arch }}:${{ steps.version.outputs.version }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.arch }}:latest
-          build-args: |
-            BUILD_FROM=ghcr.io/hassio-addons/base-python/${{ matrix.arch }}:stable
           cache-from: type=gha
           cache-to: type=gha,mode=max

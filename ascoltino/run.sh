@@ -1,14 +1,19 @@
-#!/usr/bin/with-contenv bashio
+#!/bin/bash
+set -e
 
-# Export all options as environment variables
-export BOT_TOKEN="$(bashio::config 'bot_token')"
-export BOT_MODEL="$(bashio::config 'model')"
-export LANGUAGE="$(bashio::config 'language')"
-export BEAM_SIZE="$(bashio::config 'beam_size')"
-export VAD_FILTER="$(bashio::config 'vad_filter')"
-export THREADS="$(bashio::config 'threads')"
-export BOT_NAME="$(bashio::config 'bot_name')"
-export ADMIN_CHAT_ID="$(bashio::config 'admin_chat_id')"
+OPTIONS_FILE="/data/options.json"
+
+# Read options from Home Assistant config
+if [ -f "$OPTIONS_FILE" ]; then
+    export BOT_TOKEN="$(jq -r '.bot_token' $OPTIONS_FILE)"
+    export BOT_MODEL="$(jq -r '.model' $OPTIONS_FILE)"
+    export LANGUAGE="$(jq -r '.language' $OPTIONS_FILE)"
+    export BEAM_SIZE="$(jq -r '.beam_size' $OPTIONS_FILE)"
+    export VAD_FILTER="$(jq -r '.vad_filter' $OPTIONS_FILE)"
+    export THREADS="$(jq -r '.threads' $OPTIONS_FILE)"
+    export BOT_NAME="$(jq -r '.bot_name' $OPTIONS_FILE)"
+    export ADMIN_CHAT_ID="$(jq -r '.admin_chat_id' $OPTIONS_FILE)"
+fi
 
 # Signal we're running in HA environment
 export HA_ADDON=true
@@ -16,8 +21,8 @@ export HA_ADDON=true
 # Ensure data directory exists
 mkdir -p /data/logs
 
-bashio::log.info "Starting Ascoltino v1.1.0..."
-bashio::log.info "Model: ${BOT_MODEL} | Language: ${LANGUAGE} | Threads: ${THREADS}"
+echo "Starting Ascoltino..."
+echo "Model: ${BOT_MODEL} | Language: ${LANGUAGE} | Threads: ${THREADS}"
 
 cd /app
 exec python3 -u bot.py
