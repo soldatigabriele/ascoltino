@@ -17,7 +17,7 @@ Users can install this add-on by adding the repository URL to Home Assistant:
 
 1. Go to **Settings → Add-ons → Add-on Store**
 2. Click the **⋮** menu → **Repositories**
-3. Add: `https://github.com/gab9119/ascoltino`
+3. Add: `https://github.com/soldatigabriele/ascoltino`
 4. Find "Ascoltino" in the store and click Install
 
 ## Development

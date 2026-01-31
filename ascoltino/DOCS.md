@@ -59,4 +59,4 @@ View the add-on logs to see transcription activity and troubleshoot issues.
 ## Support
 
 For issues and feature requests, visit:
-https://github.com/gab9119/ascoltino/issues
+https://github.com/soldatigabriele/ascoltino/issues
