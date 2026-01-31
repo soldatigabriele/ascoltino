@@ -1,0 +1,28 @@
+configuration:
+  bot_token:
+    name: Telegram Bot Token
+    description: Your bot token from @BotFather (required)
+  model:
+    name: Whisper Model
+    description: Model size - larger is more accurate but slower and uses more RAM
+  language:
+    name: Language Code
+    description: Two-letter language code (e.g., en, it, de, es, fr)
+  beam_size:
+    name: Beam Size
+    description: Search beam size (1-10). Higher values may improve accuracy slightly
+  vad_filter:
+    name: VAD Filter
+    description: Enable Voice Activity Detection to skip silence in audio
+  threads:
+    name: CPU Threads
+    description: Number of CPU threads for transcription (0 = auto-detect)
+  show_footer:
+    name: Show Footer
+    description: Show transcription stats (time, model, speed) in message footer
+  bot_name:
+    name: Bot Name
+    description: Optional name displayed in the transcription footer
+  admin_chat_id:
+    name: Admin Chat ID
+    description: Optional Telegram chat ID to receive startup notifications
