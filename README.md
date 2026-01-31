@@ -1,6 +1,6 @@
-# 🗣️ Ascoltino – Telegram Voice Transcriber Bot
+# 🗣️ Ascoltino – Self-Hosted Telegram Voice Transcriber Bot
 
-Ascoltino is a minimalist Telegram bot that listens to voice messages in any chat it's added to, transcribes the audio using [`faster-whisper`](https://github.com/guillaumekln/faster-whisper), and replies with the text. Built using plain HTTP requests (no Telegram SDKs) and packaged with Docker.
+Ascoltino is a minimalist, self-hosted Telegram bot that listens to voice messages in any chat it's added to, transcribes the audio locally using [`faster-whisper`](https://github.com/guillaumekln/faster-whisper) (up to 4x faster than OpenAI's Whisper), and replies with the text. No cloud services—everything runs on your own hardware. Built using plain HTTP requests (no Telegram SDKs) and packaged with Docker.
 
 
 ## 🚀 Features
@@ -10,7 +10,13 @@ Ascoltino is a minimalist Telegram bot that listens to voice messages in any cha
 - ✅ Uses Telegram Bot API directly (no dependencies like `python-telegram-bot`)
 - ✅ Runs in a Docker container with persistent logs and model cache
 - ✅ Can run on CPU (ARM/x86) with model caching
-- ✅ Automatically converts `.oga` Telegram voice files using `ffmpeg`
+- ✅ Available as a Home Assistant add-on
+
+---
+
+## 🏠 Home Assistant Add-on
+
+Ascoltino is also available as a **self-hosted Home Assistant add-on** for easy installation and management directly from your Home Assistant instance. All transcription happens locally on your hardware—no cloud services required.
 
 ---
 
@@ -35,7 +41,7 @@ Create a file named .env in the root folder with the following content:
 
 ```
 BOT_TOKEN=your_telegram_bot_token
-BOT_MODEL=base           # Options: tiny, base, small, medium, large-v2, large-v3
+BOT_MODEL=base           # Options: tiny, base, small, medium
 LANGUAGE=it              # Optional but speeds up transcription if known
 ```
 
@@ -65,12 +71,7 @@ tail -f logs/bot.log
 
 ## Troubleshooting
 
-`exec format error`: Check that the image is built for the correct platform (e.g. ARM vs x86).
-
 Bot doesn't respond: Ensure it’s added to the chat and has permission to read/send messages.
-
-Transcription not working: Check if `ffmpeg` properly converts the `.oga` file.
-
 
 ## Setup Telegram Bot
 
