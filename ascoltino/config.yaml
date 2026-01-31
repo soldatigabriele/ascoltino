@@ -1,0 +1,31 @@
+name: "Ascoltino"
+description: "Telegram bot that transcribes voice messages using Whisper AI"
+version: "1.1.0"
+slug: "ascoltino"
+url: "https://github.com/gab9119/ascoltino"
+init: false
+arch:
+  - aarch64
+  - amd64
+image: ghcr.io/gab9119/ascoltino-{arch}
+map:
+  - type: data
+    read_only: false
+options:
+  bot_token: ""
+  model: "base"
+  language: "en"
+  beam_size: 1
+  vad_filter: false
+  threads: 4
+  bot_name: ""
+  admin_chat_id: ""
+schema:
+  bot_token: password
+  model: "list(tiny|base|small|medium|large-v2|large-v3)"
+  language: str
+  beam_size: "int(1,10)"
+  vad_filter: bool
+  threads: "int(1,16)"
+  bot_name: "str?"
+  admin_chat_id: "str?"

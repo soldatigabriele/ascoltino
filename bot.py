@@ -9,6 +9,25 @@ import logging
 
 VERSION = "1.1.0"
 
+# Detect Home Assistant add-on environment
+HA_ADDON = os.getenv("HA_ADDON", "").lower() == "true"
+
+# Set paths based on environment
+if HA_ADDON:
+    DATA_DIR = "/data"
+    LOG_DIR = "/data/logs"
+    LOG_FILE = "/data/logs/bot.log"
+    # Set Whisper model cache location for HA
+    os.environ["HF_HOME"] = "/data/.cache"
+else:
+    DATA_DIR = "storage"
+    LOG_DIR = "logs"
+    LOG_FILE = "logs/bot.log"
+
+# Ensure directories exist
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 BOT_NAME = os.getenv("BOT_NAME", "")
@@ -40,10 +59,11 @@ THREADS = THREADS_LIST[0]
 CONFIGS = list(product(BOT_MODELS, BEAM_SIZES, VAD_FILTERS, THREADS_LIST))
 MULTI_CONFIG_MODE = len(CONFIGS) > 1
 
-LAST_UPDATE_FILE = "storage/.last_update"
+LAST_UPDATE_FILE = os.path.join(DATA_DIR, ".last_update")
+VOICE_FILE_PATH = os.path.join(DATA_DIR, "voice.oga")
 
 logging.basicConfig(
-    filename='logs/bot.log',
+    filename=LOG_FILE,
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
 )
@@ -52,6 +72,8 @@ log = logging.getLogger(__name__)
 
 # Startup banner (prints to stdout for container logs)
 print(f"Ascoltino v{VERSION}")
+if HA_ADDON:
+    print(f"  Mode: Home Assistant Add-on")
 if MULTI_CONFIG_MODE:
     print(f"  Multi-config mode: {len(CONFIGS)} combinations")
     print(f"  Models: {BOT_MODELS} | Beams: {BEAM_SIZES} | VADs: {VAD_FILTERS} | Threads: {THREADS_LIST}")
@@ -117,7 +139,6 @@ def convert_oga_to_wav(input_path, output_path):
         return False
 
 def get_last_update_id():
-    os.makedirs("storage", exist_ok=True)
     if not os.path.exists(LAST_UPDATE_FILE):
         with open(LAST_UPDATE_FILE, "w") as f:
             f.write("0")
@@ -149,7 +170,7 @@ def download_file(file_id):
         res = requests.get(f"{API_URL}/getFile", params={"file_id": file_id})
         file_path = res.json()["result"]["file_path"]
         download_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
-        local_path = "storage/voice.oga"
+        local_path = VOICE_FILE_PATH
         with requests.get(download_url, stream=True) as r:
             with open(local_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
