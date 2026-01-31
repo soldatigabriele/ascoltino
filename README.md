@@ -73,15 +73,17 @@ Transcription not working: Check if `ffmpeg` properly converts the `.oga` file.
 ## Build and deploy
 
 ```bash
-# AMD
-docker build --platform linux/arm64 -t gab9119/ascoltino-bot .
-docker tag gab9119/ascoltino-bot gab9119/ascoltino-bot:arm_v2
-docker push gab9119/ascoltino-bot:arm_v2
-
 # ARM
-docker build --platform linux/amd64 -t gab9119/ascoltino-bot .
-docker tag gab9119/ascoltino-bot gab9119/ascoltino-bot:amd_v5
-docker push gab9119/ascoltino-bot:amd_v5
+docker build --platform linux/arm64 --no-cache -t gab9119/ascoltino-bot .
+docker tag gab9119/ascoltino-bot gab9119/ascoltino-bot:arm_v10
+docker push gab9119/ascoltino-bot:arm_v10
+
+# AMD
+docker build --platform linux/amd64 --no-cache -t gab9119/ascoltino-bot .
+docker tag gab9119/ascoltino-bot gab9119/ascoltino-bot:amd_v10 && docker push gab9119/ascoltino-bot:amd_v10
+
+./build.sh v11           # Build arm64 (default), prompts to push
+./build.sh v11 amd64     # Build amd64
 
 # change in your docker-compose the version you need before pulling
 ```

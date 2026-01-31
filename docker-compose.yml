@@ -1,6 +1,6 @@
 services:
   telegram-bot:
-    image: gab9119/ascoltino-bot:amd_v7
+    image: gab9119/ascoltino-bot:amd_v9
     build: .
     env_file:
       - .env
