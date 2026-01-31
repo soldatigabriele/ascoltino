@@ -72,16 +72,13 @@ Bot doesn't respond: Ensure it’s added to the chat and has permission to read/
 Transcription not working: Check if `ffmpeg` properly converts the `.oga` file.
 
 
-## Find the chat_id
+## Setup Telegram Bot
+
+Create a Telegram Bot with BotFather and grab the token, then invite the bot in your chat with admin privileges (necessary to read, write and edit messages).
+If you want to find the chat_id (optional):
 
 ```bash
 https://api.telegram.org/bot<TOKEN>/getUpdates
-
-# get the message with the audio message
-
-https://api.telegram.org/bot<TOKEN>/getFile?file_id= # /voice/file_11.oga
-
-https://api.telegram.org/file/bot<TOKEN>/voice/file_11.oga
 ```
 
-! Note: make sure you keep the `/bot` part in the url before the token!
+! Note: make sure you keep the `/bot` part in the url before the token, and the `-` before the chat_id!
