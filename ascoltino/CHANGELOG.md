@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+- Added "Allowed Chat IDs" option to restrict which chats can use the bot
+- Voice messages from other chats are ignored, logged, and reported once to the admin chat
+- Logs now include chat and user details for every voice message
+- Non-message updates (edits, joins, channel posts) no longer log as errors
+
 ## 1.2.1
 
 - Documentation cleanup

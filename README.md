@@ -43,7 +43,12 @@ Create a file named .env in the root folder with the following content:
 BOT_TOKEN=your_telegram_bot_token
 BOT_MODEL=base           # Options: tiny, base, small, medium
 LANGUAGE=it              # Optional but speeds up transcription if known
+ALLOWED_CHAT_IDS=-1001234567890,123456789  # Strongly recommended, see below
 ```
+
+### Restricting who can use the bot
+
+Anyone who finds your bot's username on Telegram can send it voice messages, and your machine will transcribe them. Set `ALLOWED_CHAT_IDS` to a comma-separated list of chat IDs (groups are negative numbers) to only serve those chats. Messages from other chats are ignored and logged with the chat/user details; if `ADMIN_CHAT_ID` is set you also get notified once per unknown chat. See [Setup Telegram Bot](#setup-telegram-bot) for how to find a chat ID.
 
 ### 3. Build and run
 
@@ -76,7 +81,10 @@ Bot doesn't respond: Ensure it’s added to the chat and has permission to read/
 ## Setup Telegram Bot
 
 Create a Telegram Bot with BotFather and grab the token, then invite the bot in your chat with admin privileges (necessary to read, write and edit messages).
-If you want to find the chat_id (optional):
+To find a chat_id (needed for `ALLOWED_CHAT_IDS`), either:
+
+- Open the chat in [web.telegram.org](https://web.telegram.org) and read the number after `#` in the URL (e.g. `#-1001234567890`), or
+- Stop the bot, send a message in the chat, then open:
 
 ```bash
 https://api.telegram.org/bot<TOKEN>/getUpdates

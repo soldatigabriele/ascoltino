@@ -53,10 +53,13 @@ Ascoltino is a Telegram bot that automatically transcribes voice messages using 
 | **Show Footer** | Show transcription stats (time, model, speed) in messages |
 | **Bot Name** | Optional name shown in the transcription footer |
 | **Admin Chat ID** | Optional chat ID to receive startup notifications |
+| **Allowed Chat IDs** | Comma-separated chat IDs allowed to use the bot. Strongly recommended: without it, anyone who finds your bot can send it voice messages and use your CPU |
+
+When **Allowed Chat IDs** is set, voice messages from other chats are ignored and logged. If **Admin Chat ID** is also set, you get a one-time notification per unknown chat.
 
 ## Finding Your Chat ID
 
-If you want to receive startup notifications, you'll need your chat ID:
+You'll need chat IDs for **Allowed Chat IDs** and (optionally) **Admin Chat ID**:
 
 1. Send a message to your bot (or in the group where the bot is)
 2. Open this URL in your browser (replace `<TOKEN>` with your bot token):

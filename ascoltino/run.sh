@@ -14,6 +14,8 @@ if [ -f "$OPTIONS_FILE" ]; then
     export BOT_NAME="$(jq -r '.bot_name' $OPTIONS_FILE)"
     export ADMIN_CHAT_ID="$(jq -r '.admin_chat_id' $OPTIONS_FILE)"
     export SHOW_FOOTER="$(jq -r '.show_footer' $OPTIONS_FILE)"
+    # `// ""` so an omitted optional field becomes empty instead of the string "null"
+    export ALLOWED_CHAT_IDS="$(jq -r '.allowed_chat_ids // ""' $OPTIONS_FILE)"
 fi
 
 # Signal we're running in HA environment

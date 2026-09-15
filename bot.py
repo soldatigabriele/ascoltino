@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 
 import logging
 
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 
 # Detect Home Assistant add-on environment
 HA_ADDON = os.getenv("HA_ADDON", "").lower() == "true"
@@ -44,6 +44,9 @@ def parse_ints(val):
 
 def parse_bools(val):
     return [x.strip().lower() == "true" for x in val.split(",") if x.strip()]
+
+# Chats allowed to use the bot. Empty means open to everyone (not recommended).
+ALLOWED_CHAT_IDS = set(parse_ints(os.getenv("ALLOWED_CHAT_IDS", "")))
 
 BOT_MODELS = parse_models(os.getenv("BOT_MODEL", "base"))
 BEAM_SIZES = parse_ints(os.getenv("BEAM_SIZE", "1"))
@@ -82,9 +85,17 @@ else:
     print(f"  Model: {BOT_MODEL} | Beam: {BEAM_SIZE} | VAD: {VAD_FILTER} | Threads: {THREADS}")
 if BOT_NAME:
     print(f"  Name: {BOT_NAME}")
+if ALLOWED_CHAT_IDS:
+    print(f"  Allowed chats: {sorted(ALLOWED_CHAT_IDS)}")
+else:
+    print("  ⚠️  ALLOWED_CHAT_IDS not set: the bot will answer anyone who messages it")
 
 # Load models at startup - cache all unique models
 log.info(f"Ascoltino v{VERSION} starting")
+if ALLOWED_CHAT_IDS:
+    log.info(f"Allowed chats: {sorted(ALLOWED_CHAT_IDS)}")
+else:
+    log.warning("ALLOWED_CHAT_IDS not set: the bot will answer anyone who messages it")
 if MULTI_CONFIG_MODE:
     log.info(f"Multi-config mode: {len(CONFIGS)} combinations")
     log.info(f"Models: {BOT_MODELS}, Beams: {BEAM_SIZES}, VADs: {VAD_FILTERS}, Threads: {THREADS_LIST}")
@@ -312,6 +323,33 @@ def edit_message(chat_id, message_id, text):
         log.warning(f"Failed to edit message: {e}")
 
 
+def describe_chat(message):
+    """Human-readable summary of where a message came from, for audit logs."""
+    chat = message.get("chat", {})
+    sender = message.get("from", {})
+    chat_label = chat.get("title") or chat.get("username") or chat.get("first_name") or "?"
+    sender_label = sender.get("username") or sender.get("first_name") or "?"
+    return (
+        f"chat_id={chat.get('id')} type={chat.get('type')} chat='{chat_label}' "
+        f"user_id={sender.get('id')} user='{sender_label}'"
+    )
+
+
+_reported_unauthorized_chats = set()
+
+def report_unauthorized(message):
+    """Log an unauthorized voice message and notify the admin once per chat."""
+    chat_id = message["chat"]["id"]
+    log.warning(f"Unauthorized voice message ignored: {describe_chat(message)}")
+    if not ADMIN_CHAT_ID or chat_id in _reported_unauthorized_chats:
+        return
+    _reported_unauthorized_chats.add(chat_id)
+    send_message(
+        ADMIN_CHAT_ID,
+        f"🚫 Ignored voice message from a chat that is not in ALLOWED_CHAT_IDS:\n{describe_chat(message)}",
+    )
+
+
 def cleanup_temp_files(*file_paths):
     """Remove temporary files after processing."""
     for file_path in file_paths:
@@ -337,11 +375,21 @@ def main():
                 last_update_id = update_id
                 set_last_update_id(update_id)
 
-                message = update.get("message", {})
+                message = update.get("message")
+                if not message or "chat" not in message:
+                    log.info("Non-message update, ignoring")
+                    continue
                 chat_id = message["chat"]["id"]
 
+                if ALLOWED_CHAT_IDS and chat_id not in ALLOWED_CHAT_IDS:
+                    if "voice" in message:
+                        report_unauthorized(message)
+                    else:
+                        log.info(f"Message from unauthorized chat ignored: {describe_chat(message)}")
+                    continue
+
                 if "voice" in message:
-                    log.info("Voice message received")
+                    log.info(f"Voice message received: {describe_chat(message)}")
                     file_id = message["voice"]["file_id"]
                     voice_file = download_file(file_id)
                     wav_file = voice_file + ".wav" if voice_file else None

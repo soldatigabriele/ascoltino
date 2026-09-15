@@ -26,3 +26,6 @@ configuration:
   admin_chat_id:
     name: Admin Chat ID
     description: Optional Telegram chat ID to receive startup notifications
+  allowed_chat_ids:
+    name: Allowed Chat IDs
+    description: Comma-separated chat IDs allowed to use the bot (groups are negative). Empty = anyone can use it
