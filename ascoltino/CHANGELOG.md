@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+- New `parakeet` model (NVIDIA Parakeet-TDT 0.6B v3 via onnx-asr): several times faster than Whisper on CPU, 25 European languages, punctuation included. Now the default for new installs
+- Whisper decoding tuned for short voice notes: no temperature fallback, no timestamps, independent windows. Removes the 10-20 s floor seen on short clips with `medium`. `WHISPER_TIMESTAMPS` / `WHISPER_FALLBACK` restore the old behaviour
+- Audio is decoded in-process (PyAV) instead of spawning ffmpeg and decoding twice
+- Telegram calls use a keep-alive session and run on a separate thread; live edits are coalesced and never stall the decoder
+- Voice notes are downloaded by a poller thread while the previous note is being transcribed; per-note temp files
+- Fast results are posted as a single message; the "Transcribing..." placeholder only appears when a note takes longer than `PLACEHOLDER_DELAY` (1 s)
+- `threads: 0` now means all cores
+- Added `bench.py` (speed and word error rate over `samples/`) and pinned dependencies
+
 ## 1.3.0
 
 - Added "Allowed Chat IDs" option to restrict which chats can use the bot

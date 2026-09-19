@@ -1,6 +1,6 @@
 # Ascoltino - Telegram Voice Transcriber
 
-Ascoltino is a Telegram bot that automatically transcribes voice messages using OpenAI's Whisper AI model.
+Ascoltino is a Telegram bot that automatically transcribes voice messages locally, using NVIDIA's Parakeet-TDT model or OpenAI's Whisper.
 
 ## How it works
 
@@ -23,14 +23,13 @@ Ascoltino is a Telegram bot that automatically transcribes voice messages using 
 ### 2. Configure the Add-on
 
 1. Paste your bot token in the **Bot Token** field
-2. Set your preferred **Language** code (e.g., `en`, `it`, `de`, `es`, `fr`)
-3. Choose a **Whisper Model**:
-   - `tiny` - Fastest, least accurate
-   - `base` - Good balance (recommended for most users)
-   - `small` - Better accuracy, slower
-   - `medium` - High accuracy, requires more RAM
-   - `turbo` - Fast and accurate (good for powerful hardware)
-   - `large-v2` / `large-v3` - Best accuracy, requires significant RAM
+2. Set your preferred **Language** code (e.g., `en`, `it`, `de`, `es`, `fr`). Only Whisper uses it; Parakeet detects the language automatically
+3. Choose a **Model**:
+   - `parakeet` - NVIDIA Parakeet-TDT 0.6B v3 (recommended). 25 European languages, punctuation included, several times faster than Whisper on a CPU with accuracy between Whisper `small` and `medium`. Needs ~1.5 GB RAM
+   - `tiny` / `base` - Whisper, fastest but inaccurate for non-English speech
+   - `small` - Whisper, acceptable accuracy, slower than Parakeet
+   - `medium` - Whisper, high accuracy but slow on small CPUs (10+ s per note on an Intel N100)
+   - `turbo` / `large-v2` / `large-v3` - Whisper, best accuracy, needs a fast CPU or GPU
 
 ### 3. Add the Bot to Chats
 
@@ -45,11 +44,11 @@ Ascoltino is a Telegram bot that automatically transcribes voice messages using 
 | Option | Description |
 |--------|-------------|
 | **Bot Token** | Your Telegram bot token from @BotFather (required) |
-| **Model** | Whisper model size - larger is more accurate but slower |
-| **Language** | Two-letter language code (e.g., `en`, `it`, `de`) |
-| **Beam Size** | Search beam size (1-10). Higher may improve accuracy slightly |
-| **VAD Filter** | Voice Activity Detection - skips silence for faster processing |
-| **Threads** | CPU threads for transcription (0 = auto-detect) |
+| **Model** | `parakeet` or a Whisper size - see above |
+| **Language** | Two-letter language code (e.g., `en`, `it`, `de`); Whisper only |
+| **Beam Size** | Whisper search beam size (1-10). Higher may improve accuracy slightly; ignored by Parakeet |
+| **VAD Filter** | Voice Activity Detection - skips silence; Parakeet uses it automatically for notes over 30 s |
+| **Threads** | CPU threads for transcription (0 = all cores) |
 | **Show Footer** | Show transcription stats (time, model, speed) in messages |
 | **Bot Name** | Optional name shown in the transcription footer |
 | **Admin Chat ID** | Optional chat ID to receive startup notifications |
@@ -73,10 +72,11 @@ You'll need chat IDs for **Allowed Chat IDs** and (optionally) **Admin Chat ID**
 
 ## Performance Tips
 
-- **For Raspberry Pi 4**: Use `tiny` or `base` model with 2-4 threads
-- **For more powerful hardware**: Try `small`, `medium`, or `turbo` models
-- **VAD Filter**: Enable to speed up transcription of messages with pauses
-- **Beam Size**: Keep at 1 for speed, increase to 3-5 for slightly better accuracy
+- **Start with `parakeet`**: on an Intel N100 it transcribes a 5 s note in about 2 s and a 30 s note in about 6 s, where Whisper `medium` needs 12-20 s for either
+- **Threads**: `0` uses every core. If other add-ons (Frigate, other speech add-ons) keep the CPU busy, setting threads to one or two less than your core count is usually faster, not slower
+- **Whisper on small CPUs**: prefer `small` over `medium`; `medium` costs a fixed ~12 s per note on an N100 regardless of how short the note is
+- **Beam Size**: Keep at 1 for speed, increase to 3-5 for slightly better Whisper accuracy
+- **VAD Filter**: Only useful for Whisper on notes with long pauses
 
 ## Troubleshooting
 
@@ -86,13 +86,13 @@ You'll need chat IDs for **Allowed Chat IDs** and (optionally) **Admin Chat ID**
 - In groups, try disabling privacy mode via @BotFather
 
 **Transcription is slow:**
-- Try a smaller model (`tiny` or `base`)
-- Reduce the number of threads if on limited hardware
-- Enable VAD filter to skip silence
+- Switch to `parakeet`
+- Reduce the number of threads if other add-ons are using the CPU
+- With Whisper, try a smaller model (`small` or `base`)
 
 **Model download takes long:**
-- First run downloads the Whisper model (can take several minutes)
-- The model is cached for subsequent runs
+- First run downloads the model (~640 MB for Parakeet, can take several minutes)
+- The model is cached in the add-on data directory for subsequent runs
 
 ## Logs
 

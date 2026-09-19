@@ -1,9 +1,16 @@
-# Use pre-built base image with all dependencies
-FROM gab9119/ascoltino-base:latest
+FROM python:3.11-slim
 
-# Setup app directory
+# jq parses /data/options.json in run.sh. Audio decoding is done in-process (PyAV), no ffmpeg.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
 WORKDIR /app
-COPY bot.py .
+COPY bot.py engines.py ./
 COPY ascoltino/run.sh /run.sh
 RUN chmod a+x /run.sh
 

@@ -1,13 +1,18 @@
 FROM python:3.11-slim
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Audio is decoded in-process with PyAV (bundled with faster-whisper), so no ffmpeg binary.
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-RUN pip install --no-cache-dir requests faster-whisper
-
+# Optional: bake models into the image so the first start does not download anything.
+# Example: docker build --build-arg PRELOAD_MODELS=parakeet,base .
+ARG PRELOAD_MODELS=""
 WORKDIR /app
+COPY engines.py .
+RUN if [ -n "$PRELOAD_MODELS" ]; then \
+      python -c "import engines; [engines.create_engine(m.strip(), 1) for m in '$PRELOAD_MODELS'.split(',') if m.strip()]"; \
+    fi
+
 COPY . .
 
 CMD ["python", "bot.py"]

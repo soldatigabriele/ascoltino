@@ -1,0 +1,9 @@
+.env
+.git
+.github
+.history
+__pycache__
+logs
+storage
+samples
+*.md

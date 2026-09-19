@@ -8,15 +8,17 @@
 set -e
 
 IMAGE="gab9119/ascoltino-base"
-TAG="1.0"
+TAG="2.0"
 
-cd "$(dirname "$0")"
+# Build context is the repo root so requirements.txt is available.
+cd "$(dirname "$0")/.."
 
 if [[ "$1" == "--push" ]]; then
     echo "Building and pushing multi-arch image..."
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --push \
+        -f base-image/Dockerfile \
         -t "$IMAGE:$TAG" \
         -t "$IMAGE:latest" \
         .
@@ -26,7 +28,7 @@ if [[ "$1" == "--push" ]]; then
     echo "  $IMAGE:latest"
 else
     echo "Building for current platform..."
-    docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
+    docker build -f base-image/Dockerfile -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
     echo ""
     echo "Built: $IMAGE:$TAG"
     echo ""

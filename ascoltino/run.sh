@@ -25,7 +25,7 @@ export HA_ADDON=true
 mkdir -p /data/logs
 
 echo "Starting Ascoltino..."
-echo "Model: ${BOT_MODEL} | Language: ${LANGUAGE} | Threads: ${THREADS}"
+echo "Model: ${BOT_MODEL} | Language: ${LANGUAGE} | Threads: ${THREADS:-0}"
 
 cd /app
 exec python3 -u bot.py

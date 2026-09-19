@@ -3,20 +3,20 @@ configuration:
     name: Telegram Bot Token
     description: Your bot token from @BotFather (required)
   model:
-    name: Whisper Model
-    description: Model size - larger is more accurate but slower and uses more RAM
+    name: Model
+    description: "parakeet = NVIDIA Parakeet-TDT (fast, 25 European languages, recommended on CPU). Others are Whisper sizes: larger is more accurate but slower"
   language:
     name: Language Code
-    description: Two-letter language code (e.g., en, it, de, es, fr)
+    description: Two-letter language code (e.g., en, it, de, es, fr). Used by Whisper; Parakeet detects the language automatically
   beam_size:
     name: Beam Size
-    description: Search beam size (1-10). Higher values may improve accuracy slightly
+    description: Whisper search beam size (1-10). Higher values may improve accuracy slightly; ignored by Parakeet
   vad_filter:
     name: VAD Filter
     description: Enable Voice Activity Detection to skip silence in audio
   threads:
     name: CPU Threads
-    description: Number of CPU threads for transcription (0 = auto-detect)
+    description: CPU threads for transcription (0 = all cores). Use one less than your core count if other add-ons keep the CPU busy
   show_footer:
     name: Show Footer
     description: Show transcription stats (time, model, speed) in message footer
