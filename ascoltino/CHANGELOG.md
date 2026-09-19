@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Exclude the model cache from backups: snapshots were carrying several GB of downloaded models that are re-fetched automatically when missing
+
 ## 1.4.0
 
 - New `parakeet` model (NVIDIA Parakeet-TDT 0.6B v3 via onnx-asr): several times faster than Whisper on CPU, 25 European languages, punctuation included. Now the default for new installs

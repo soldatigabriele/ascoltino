@@ -1,6 +1,6 @@
 name: "Ascoltino"
 description: "Telegram bot that transcribes voice messages locally (Parakeet or Whisper)"
-version: "1.4.0"
+version: "1.4.1"
 slug: "ascoltino"
 url: "https://github.com/soldatigabriele/ascoltino"
 init: true
@@ -11,6 +11,9 @@ image: ghcr.io/soldatigabriele/ascoltino-{arch}
 map:
   - type: data
     read_only: false
+# Models are re-downloaded on demand; keeping them out saves several GB per backup.
+backup_exclude:
+  - ".cache/**"
 options:
   bot_token: ""
   model: "parakeet"
