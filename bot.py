@@ -8,7 +8,7 @@ import requests
 
 import logging
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 
 # Detect Home Assistant add-on environment
 HA_ADDON = os.getenv("HA_ADDON", "").lower() == "true"

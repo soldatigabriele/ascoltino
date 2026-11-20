@@ -1,6 +1,6 @@
 name: "Ascoltino"
 description: "Telegram bot that transcribes voice messages locally (Parakeet or Whisper)"
-version: "1.4.1"
+version: "1.5.0"
 slug: "ascoltino"
 url: "https://github.com/soldatigabriele/ascoltino"
 init: true
@@ -25,9 +25,10 @@ options:
   bot_name: ""
   admin_chat_id: ""
   allowed_chat_ids: ""
+  wyoming_uri: ""
 schema:
   bot_token: password
-  model: "list(parakeet|tiny|base|small|medium|turbo|large-v2|large-v3)"
+  model: "list(parakeet|tiny|base|small|medium|turbo|large-v2|large-v3|wyoming)"
   language: str
   beam_size: "int(1,10)"
   vad_filter: bool
@@ -36,3 +37,4 @@ schema:
   bot_name: "str?"
   admin_chat_id: "str?"
   allowed_chat_ids: "str?"
+  wyoming_uri: "str?"

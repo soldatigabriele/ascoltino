@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0
+
+- New `wyoming` model: instead of loading its own model, Ascoltino sends the audio to a speech-to-text add-on you already run for Home Assistant voice (Whisper, ONNX ASR/Parakeet, ...), set with the new "Wyoming Server URI" option. Saves the memory of a second model; speed and accuracy are those of that add-on. Notes over 30 s are split at pauses, so live updates keep working
+- Nothing changes for the built-in `parakeet` and Whisper models
+
 ## 1.4.1
 
 - Exclude the model cache from backups: snapshots were carrying several GB of downloaded models that are re-fetched automatically when missing

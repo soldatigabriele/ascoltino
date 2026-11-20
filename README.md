@@ -7,6 +7,8 @@ Two engines are available, selected with `BOT_MODEL`:
 - **`parakeet`** – [NVIDIA Parakeet-TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) via [`onnx-asr`](https://github.com/istupakov/onnx-asr). 25 European languages, punctuation and capitalisation built in, and by far the fastest option on a CPU. Recommended.
 - **Whisper sizes** (`tiny`, `base`, `small`, `medium`, `turbo`, `large-v3`, ...) via [`faster-whisper`](https://github.com/SYSTRAN/faster-whisper).
 
+A third option loads no model at all: **`wyoming`** sends the audio to a [Wyoming](https://www.home-assistant.io/integrations/wyoming/) speech-to-text server that is already running, typically the Whisper or Parakeet add-on used by Home Assistant voice. Set `WYOMING_URI=tcp://host:port`. It saves the memory of a second model, but speed and accuracy are then that server's, and it handles one request at a time. Notes over 30 s are split at pauses and sent piece by piece. See the add-on documentation for details.
+
 
 ## 🚀 Features
 

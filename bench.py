@@ -12,6 +12,7 @@ Examples:
     python3 bench.py --models medium --threads 3,4      # thread sweep
     WHISPER_FALLBACK=true WHISPER_TIMESTAMPS=true python3 bench.py --models medium   # old decoder behaviour
     python3 bench.py --models parakeet --json out.json
+    WYOMING_URI=tcp://homeassistant.local:10300 python3 bench.py --models wyoming,parakeet   # remote vs built-in
 """
 
 import argparse
@@ -114,7 +115,7 @@ def parse_list(value, cast=str):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--models", default=os.getenv("BOT_MODEL", "base"),
-                    help="comma-separated: parakeet, tiny, base, small, medium, turbo, large-v3, ...")
+                    help="comma-separated: parakeet, wyoming (needs WYOMING_URI), tiny, base, small, medium, turbo, ...")
     ap.add_argument("--threads", default=os.getenv("THREADS", "0"), help="comma-separated, 0 = all cores")
     ap.add_argument("--beam", default=os.getenv("BEAM_SIZE", "1"), help="comma-separated beam sizes (whisper)")
     ap.add_argument("--vad", default=os.getenv("VAD_FILTER", "false"), help="comma-separated true/false")
@@ -136,7 +137,8 @@ def main():
     for model in parse_list(args.models):
         for threads in parse_list(args.threads, int):
             for vad in parse_list(args.vad, lambda v: v.lower() == "true"):
-                beams = [1] if engines.is_parakeet(model) else parse_list(args.beam, int)
+                whisper = not (engines.is_parakeet(model) or engines.is_wyoming(model))
+                beams = parse_list(args.beam, int) if whisper else [1]
                 for beam in beams:
                     results.append(run_config(model, threads, beam, vad, args.language, samples,
                                               args.repeat, not args.no_warmup))

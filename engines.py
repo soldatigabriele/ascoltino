@@ -1,19 +1,24 @@
 """Transcription engines used by Ascoltino.
 
-Two backends share one small interface:
+Three backends share one small interface:
 
 * ``WhisperEngine``  - faster-whisper (CTranslate2), model names like ``base``/``medium``/``turbo``.
 * ``ParakeetEngine`` - NVIDIA Parakeet-TDT 0.6B v3 via onnx-asr, model name ``parakeet``.
+* ``WyomingEngine``  - a speech-to-text server that is already running elsewhere (for
+  example a Home Assistant voice add-on), model name ``wyoming``. Loads no model here.
 
-Both consume a 16 kHz mono float32 numpy array produced by :func:`decode_audio`, so the
+All consume a 16 kHz mono float32 numpy array produced by :func:`decode_audio`, so the
 audio is decoded exactly once (PyAV, bundled with faster-whisper) and no ffmpeg process
 is spawned.
 """
 
+import json
 import logging
 import os
 import shutil
+import socket
 import time
+from urllib.parse import urlparse
 
 import numpy as np
 
@@ -34,6 +39,17 @@ TAIL_PAD_SECONDS = float(os.getenv("TAIL_PAD_SECONDS", "0.5"))
 # silence with Silero VAD to keep memory bounded.
 PARAKEET_SINGLE_PASS_MAX_S = float(os.getenv("PARAKEET_SINGLE_PASS_MAX_S", "30"))
 
+# Model name that hands transcription to a Wyoming server instead of loading a model here.
+WYOMING_MODEL = "wyoming"
+WYOMING_DEFAULT_PORT = 10300
+# Wyoming speech-to-text servers are built for short voice commands and transcribe a
+# request in one pass, so longer notes are sent as several requests of at most this length.
+# It also bounds how long a note can keep the server away from its other clients.
+WYOMING_MAX_CHUNK_S = float(os.getenv("WYOMING_MAX_CHUNK_S", "30"))
+# Seconds to wait for the transcript of one request.
+WYOMING_TIMEOUT = float(os.getenv("WYOMING_TIMEOUT", "120"))
+WYOMING_CONNECT_TIMEOUT = 10.0
+
 
 def env_flag(name, default):
     return os.getenv(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
@@ -41,6 +57,10 @@ def env_flag(name, default):
 
 def is_parakeet(model_name):
     return model_name.strip().lower() in PARAKEET_MODELS
+
+
+def is_wyoming(model_name):
+    return model_name.strip().lower() == WYOMING_MODEL
 
 
 def models_root():
@@ -239,7 +259,198 @@ def _load_with_retry(load, model_dir):
         return load()
 
 
+class WyomingError(RuntimeError):
+    """The Wyoming server could not be reached, or answered with a failure."""
+
+
+def parse_wyoming_uri(uri):
+    """``tcp://host:port`` (or just ``host:port``) -> ``(host, port)``."""
+    uri = (uri or "").strip()
+    if not uri:
+        raise ValueError(
+            f"Model '{WYOMING_MODEL}' needs the address of a Wyoming speech-to-text server: "
+            "set WYOMING_URI (add-on option 'Wyoming Server URI'), e.g. tcp://core-whisper:10300"
+        )
+    parsed = urlparse(uri if "://" in uri else f"tcp://{uri}")
+    try:
+        host, port = parsed.hostname, parsed.port
+    except ValueError:
+        host = None
+    if parsed.scheme != "tcp" or not host:
+        raise ValueError(f"Invalid WYOMING_URI '{uri}': expected tcp://host:port")
+    return host, port or WYOMING_DEFAULT_PORT
+
+
+def _wyoming_event(event_type, data=None, payload=None):
+    """One event on the wire: a JSON header line, then optional JSON data and binary payload."""
+    header = {"type": event_type}
+    data_bytes = json.dumps(data).encode("utf-8") if data else b""
+    if data_bytes:
+        header["data_length"] = len(data_bytes)
+    if payload:
+        header["payload_length"] = len(payload)
+    return json.dumps(header).encode("utf-8") + b"\n" + data_bytes + (payload or b"")
+
+
+def _read_wyoming_event(stream):
+    """Returns ``(type, data)``, or None when the server closed the connection."""
+    line = stream.readline()
+    if not line:
+        return None
+    header = json.loads(line)
+    data = header.get("data") or {}
+    for field, keep in (("data_length", True), ("payload_length", False)):
+        length = header.get(field) or 0
+        if not length:
+            continue
+        body = stream.read(length)
+        if len(body) < length:
+            return None
+        if keep:
+            data.update(json.loads(body))
+    return header["type"], data
+
+
+class WyomingEngine(Engine):
+    """Speech-to-text on a Wyoming server, e.g. a Home Assistant Whisper or Parakeet add-on.
+
+    Nothing is loaded in this process, so the model that the voice assistant already keeps
+    in memory is reused. Speed and accuracy are whatever that server delivers.
+
+    A request is ``transcribe``, ``audio-start``, ``audio-chunk``..., ``audio-stop`` and the
+    answer is a single ``transcript``; the protocol is spoken directly over a socket so no
+    extra dependency is needed. Long notes are cut at pauses and sent piece by piece, which
+    also keeps the live updates in Telegram.
+    """
+
+    kind = "wyoming"
+
+    def __init__(self, model_name, threads, language=None, uri=None):
+        super().__init__(model_name, threads)
+        self.language = language or None
+        self.host, self.port = parse_wyoming_uri(uri if uri is not None else os.getenv("WYOMING_URI"))
+        self.server = None
+        self._describe()
+
+    @property
+    def address(self):
+        return f"tcp://{self.host}:{self.port}"
+
+    def label(self, beam_size=None, vad_filter=None):
+        return f"model={self.model_name} ({self.server})" if self.server else f"model={self.model_name}"
+
+    def _exchange(self, events, want, timeout):
+        """Send ``events`` on a fresh connection and return the data of the first ``want`` event."""
+        try:
+            with socket.create_connection((self.host, self.port), timeout=WYOMING_CONNECT_TIMEOUT) as sock:
+                sock.settimeout(timeout)
+                for event in events:
+                    sock.sendall(event)
+                with sock.makefile("rb") as stream:
+                    while True:
+                        event = _read_wyoming_event(stream)
+                        if event is None:
+                            raise WyomingError(f"{self.address} closed the connection without a '{want}'")
+                        event_type, data = event
+                        if event_type == "error":
+                            raise WyomingError(f"{self.address} reported: {data.get('text')}")
+                        if event_type == want:
+                            return data
+        except socket.timeout:
+            raise WyomingError(f"{self.address} did not answer within {timeout:.0f}s") from None
+        except (OSError, ValueError) as e:
+            raise WyomingError(f"{self.address}: {e}") from None
+
+    def _describe(self):
+        """Ask the server what it is, for the logs and the footer.
+
+        An unreachable server is not fatal: the other add-on may still be starting, and
+        every note opens a new connection anyway.
+        """
+        try:
+            info = self._exchange([_wyoming_event("describe")], "info", WYOMING_CONNECT_TIMEOUT)
+        except WyomingError as e:
+            _announce(f"⚠️  Wyoming server not reachable yet, will retry on the next voice note ({e})",
+                      logging.WARNING)
+            return
+        programs = [p for p in info.get("asr") or [] if p.get("installed", True)]
+        if not programs:
+            raise WyomingError(f"{self.address} is a Wyoming server but offers no speech-to-text")
+        program = programs[0]
+        models = [m for m in program.get("models") or [] if m.get("installed", True)]
+        self.server = program.get("name") or "?"
+        names = ", ".join(str(m.get("name")) for m in models) or "?"
+        _announce(f"Wyoming server {self.server} {program.get('version') or ''} at {self.address}, "
+                  f"models: {names}")
+        languages = {lang for m in models for lang in m.get("languages") or []}
+        if self.language and languages and self.language not in languages:
+            _announce(f"⚠️  Language '{self.language}' is not offered by the Wyoming server "
+                      f"({', '.join(sorted(languages))}): check the models enabled there", logging.WARNING)
+
+    def _pieces(self, audio, vad_filter):
+        """The audio as pieces the server can take in one pass each.
+
+        Speech is found with the Silero model bundled with faster-whisper (nothing to
+        download) and neighbouring stretches are joined up to WYOMING_MAX_CHUNK_S, so cuts
+        only fall on pauses.
+        """
+        if not vad_filter and audio_duration(audio) <= WYOMING_MAX_CHUNK_S:
+            return [audio]
+        from faster_whisper.vad import VadOptions, get_speech_timestamps
+
+        speech = get_speech_timestamps(audio, VadOptions(
+            max_speech_duration_s=WYOMING_MAX_CHUNK_S, min_silence_duration_ms=500, speech_pad_ms=200,
+        ))
+        limit = int(WYOMING_MAX_CHUNK_S * SAMPLE_RATE)
+        spans = []
+        for segment in speech:
+            if spans and segment["end"] - spans[-1][0] <= limit:
+                spans[-1][1] = segment["end"]
+            else:
+                spans.append([segment["start"], segment["end"]])
+        return [audio[start:end] for start, end in spans]
+
+    def _recognize(self, audio):
+        # decode_audio yields 16-bit samples divided by 32768, so this restores them exactly.
+        pcm = np.clip(np.round(audio * 32768.0), -32768, 32767).astype("<i2").tobytes()
+        audio_format = {"rate": SAMPLE_RATE, "width": 2, "channels": 1}
+        step = SAMPLE_RATE * 2  # one second of 16-bit mono per audio-chunk event
+        events = [
+            _wyoming_event("transcribe", {"language": self.language} if self.language else None),
+            _wyoming_event("audio-start", audio_format),
+            *(_wyoming_event("audio-chunk", audio_format, pcm[i:i + step]) for i in range(0, len(pcm), step)),
+            _wyoming_event("audio-stop"),
+        ]
+        text = self._exchange(events, "transcript", WYOMING_TIMEOUT).get("text") or ""
+        # Some servers (wyoming-onnx-asr) report failures as the text of a normal transcript.
+        if text.startswith("ERROR: "):
+            raise WyomingError(f"{self.address} reported: {text[len('ERROR: '):]}")
+        return text
+
+    def transcribe(self, audio, beam_size=1, vad_filter=False, on_partial=None, **overrides):
+        started = time.time()
+        if self.server is None:
+            self._describe()
+        pieces = self._pieces(audio, vad_filter)
+        text = ""
+        for index, piece in enumerate(pieces, 1):
+            part = self._recognize(piece)
+            log.info(f"[piece {index}/{len(pieces)}, {len(piece) / SAMPLE_RATE:.1f}s] {part}")
+            text += part.strip() + " "
+            if on_partial and text.strip():
+                on_partial(text.strip())
+        return self._result(text, audio, started)
+
+
+def _announce(message, level=logging.INFO):
+    """Start-up facts worth seeing in the container log as well as in the log file."""
+    log.log(level, message)
+    print(f"  {message}")
+
+
 def create_engine(model_name, threads, language=None):
     if is_parakeet(model_name):
         return ParakeetEngine(model_name, threads, language)
+    if is_wyoming(model_name):
+        return WyomingEngine(model_name, threads, language)
     return WhisperEngine(model_name, threads, language)

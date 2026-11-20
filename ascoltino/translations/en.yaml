@@ -4,10 +4,10 @@ configuration:
     description: Your bot token from @BotFather (required)
   model:
     name: Model
-    description: "parakeet = NVIDIA Parakeet-TDT (fast, 25 European languages, recommended on CPU). Others are Whisper sizes: larger is more accurate but slower"
+    description: "parakeet = NVIDIA Parakeet-TDT (fast, 25 European languages, recommended on CPU). wyoming = use a speech-to-text add-on that is already running (set Wyoming Server URI). Others are Whisper sizes: larger is more accurate but slower"
   language:
     name: Language Code
-    description: Two-letter language code (e.g., en, it, de, es, fr). Used by Whisper; Parakeet detects the language automatically
+    description: Two-letter language code (e.g., en, it, de, es, fr). Used by Whisper and sent to a Wyoming server; Parakeet detects the language automatically
   beam_size:
     name: Beam Size
     description: Whisper search beam size (1-10). Higher values may improve accuracy slightly; ignored by Parakeet
@@ -29,3 +29,6 @@ configuration:
   allowed_chat_ids:
     name: Allowed Chat IDs
     description: Comma-separated chat IDs allowed to use the bot (groups are negative). Empty = anyone can use it
+  wyoming_uri:
+    name: Wyoming Server URI
+    description: "Only for model wyoming: address of the speech-to-text add-on, tcp://<its hostname>:<port> (e.g. tcp://core-whisper:10300). The hostname is shown on that add-on's Info page"
